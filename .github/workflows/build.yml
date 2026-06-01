@@ -9,6 +9,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Force the build system to use the ARM cross-compiler
+      CC: arm-none-eabi-gcc
+      LD: arm-none-eabi-ld
+      AS: arm-none-eabi-as
+      OBJCOPY: arm-none-eabi-objcopy
+      CXX: arm-none-eabi-g++
+      AR: arm-none-eabi-ar
+      
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -16,7 +25,6 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          # Ensure essential build tools and cross-compiler are installed
           sudo apt-get install -y build-essential gcc-arm-none-eabi binutils-arm-none-eabi libpng-dev pkg-config libz-dev
 
       - name: Build Tools
@@ -30,19 +38,13 @@ jobs:
 
       - name: Build ROM
         run: |
-          # Verify baserom exists
-          if [ ! -f "baserom.gba" ]; then
-            echo "ERROR: baserom.gba not found in root!"
-            exit 1
-          fi
-          
-          # Add tools to PATH
+          # Ensure tools are in the path
           export PATH=$PATH:$(pwd)/tools
           
-          # Run make by forcing the use of the ARM cross-compiler
-          # These variable overrides ensure the Makefile uses the right tools
+          # Run make with forced toolchain variables
           make clean
-          make -j$(nproc) CC=arm-none-eabi-gcc LD=arm-none-eabi-ld AS=arm-none-eabi-as OBJCOPY=arm-none-eabi-objcopy
+          make -j$(nproc)
+
       - name: Upload ROM artifact
         uses: actions/upload-artifact@v4
         with:
