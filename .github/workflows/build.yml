@@ -16,25 +16,22 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            gcc-arm-none-eabi \
-            binutils-arm-none-eabi \
-            libpng-dev \
-            pkg-config \
-            libz-dev
+          sudo apt-get install -y build-essential gcc-arm-none-eabi binutils-arm-none-eabi libpng-dev pkg-config libz-dev
 
       - name: Build Tools
         run: |
-          # The project root has a 'tools' folder. 
-          # We run make in that directory to compile the binary tools.
-          make -C tools
+          # Manually build the key tools found in standard GBA decompilation repos
+          # If these folders exist, we compile them individually
+          [ -d "tools/gbagfx" ] && make -C tools/gbagfx
+          [ -d "tools/scaninc" ] && make -C tools/scaninc
+          [ -d "tools/preproc" ] && make -C tools/preproc
+          [ -d "tools/ramscrgen" ] && make -C tools/ramscrgen
 
       - name: Build ROM
         run: |
-          # We add the 'tools' directory to our PATH so the 
-          # main Makefile can find the programs we just built.
+          # Add the tools directory to PATH
           export PATH=$PATH:$(pwd)/tools
+          # Attempt the main build
           make -j$(nproc)
 
       - name: Upload ROM artifact
