@@ -31,13 +31,18 @@ jobs:
       - name: Build ROM
         run: |
           # Verify baserom exists
-          ls -l baserom.gba
-          # Add tools to path
+          if [ ! -f "baserom.gba" ]; then
+            echo "ERROR: baserom.gba not found in root!"
+            exit 1
+          fi
+          
+          # Add tools to PATH
           export PATH=$PATH:$(pwd)/tools
-          # Clean and build
+          
+          # Run make by forcing the use of the ARM cross-compiler
+          # These variable overrides ensure the Makefile uses the right tools
           make clean
-          make -j$(nproc)
-
+          make -j$(nproc) CC=arm-none-eabi-gcc LD=arm-none-eabi-ld AS=arm-none-eabi-as OBJCOPY=arm-none-eabi-objcopy
       - name: Upload ROM artifact
         uses: actions/upload-artifact@v4
         with:
