@@ -43,9 +43,10 @@ jobs:
       - name: Build ROM
         run: |
           export PATH="$(pwd)/tools:$PATH"
-          # Force the compiler to use ONLY the local agbcc includes
-          # and specifically ignore standard system directories
-          AGBCC_INCLUDE="$(pwd)/tools/agbcc/include"
+          # We will prioritize the project's include directory
+          # and provide the GCC headers without blocking them entirely.
+          # We use -isystem to lower the priority of system headers 
+          # so your project's local 'include' takes precedence.
           
           make clean
           make -j$(nproc) CC=arm-none-eabi-gcc \
@@ -53,7 +54,7 @@ jobs:
                         AS=arm-none-eabi-as \
                         LD=arm-none-eabi-ld \
                         OBJCOPY=arm-none-eabi-objcopy \
-                        CPPFLAGS="-Iinclude -I$AGBCC_INCLUDE -nostdinc -isystem $AGBCC_INCLUDE" \
+                        CPPFLAGS="-Iinclude -isystem $(arm-none-eabi-gcc -print-file-name=include)" \
                         CFLAGS="-w -ffreestanding"
       - name: Upload ROM artifact
         uses: actions/upload-artifact@v4
