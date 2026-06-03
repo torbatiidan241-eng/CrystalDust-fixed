@@ -5,7 +5,6 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -14,15 +13,18 @@ jobs:
 
       - name: Build ROM
         run: |
-          # Add the tools directory to the PATH
+          # 1. Ensure tools are in the PATH
           export PATH="$(pwd)/tools:$PATH"
           
-          # Clean previous build artifacts
+          # 2. Use the specific agbcc binary from your tools folder
+          # Replace 'tools/agbcc/agbcc' with the actual path to your agbcc binary
+          AGBCC_PATH="$(pwd)/tools/agbcc/agbcc"
+          
           make clean
           
-          # The key here is passing -w (suppress all warnings) and 
-          # restricting header searches to project-local paths
-          make -j$(nproc) CC=arm-none-eabi-gcc \
+          # 3. Invoke make using the local agbcc
+          # We pass -w to suppress warnings, as agbcc treats warnings as fatal errors
+          make -j$(nproc) CC="$AGBCC_PATH" \
                         CXX=arm-none-eabi-g++ \
                         AS=arm-none-eabi-as \
                         LD=arm-none-eabi-ld \
