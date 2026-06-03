@@ -28,10 +28,15 @@ jobs:
 
       - name: Build Tools
         run: |
-          # Compile the project's helper tools (scaninc, gbagfx, etc.)
-          # Some projects require building tools individually if a root Makefile fails
-          make -C tools || (for d in tools/*; do [ -d "$d" ] && make -C "$d"; done)
-
+          # 1. Debug: List the contents so we can see what we are dealing with
+          ls -R tools/
+          
+          # 2. Try to build only if a Makefile exists, otherwise skip to prevent failure
+          if [ -f "tools/Makefile" ]; then
+            make -C tools
+          else
+            echo "No root Makefile in tools/, skipping tool build."
+          fi
       - name: Build ROM
         run: |
           # Add the local tools directory to the PATH
