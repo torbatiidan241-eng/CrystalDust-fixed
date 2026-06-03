@@ -44,15 +44,15 @@ jobs:
         run: |
           export PATH="$(pwd)/tools:$PATH"
           make clean
-          # Add COMPILER_FLAGS="-w" to suppress warnings, 
-          # or try overriding CFLAGS to disable -Werror
+          # Explicitly tell the compiler to ONLY look in 'include' 
+          # and ignore system headers that are causing the errors
           make -j$(nproc) CC=arm-none-eabi-gcc \
                         CXX=arm-none-eabi-g++ \
                         AS=arm-none-eabi-as \
                         LD=arm-none-eabi-ld \
                         OBJCOPY=arm-none-eabi-objcopy \
-                        CPPFLAGS="-Iinclude -Wno-everything" \
-                        CFLAGS="-w"
+                        CPPFLAGS="-Iinclude -nostdinc -Iinclude/gcc" \
+                        CFLAGS="-w -ffreestanding"
       - name: Upload ROM artifact
         uses: actions/upload-artifact@v4
         with:
