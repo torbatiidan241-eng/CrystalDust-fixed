@@ -25,11 +25,12 @@ jobs:
       - name: Build agbcc
         run: |
           chmod -R +x tools/agbcc
-          # Build only the compiler itself, skip the faulty libc build if it's failing
-          cd tools/agbcc && ./build.sh && cd ../..
-          # Note: If ./build.sh still tries to build libc and fails, 
-          # you may need to edit ./build.sh to comment out the libc build line.
-
+          cd tools/agbcc
+          # Manually invoke the make commands required to build the agbcc binary
+          make -C gcc
+          # After building, ensure the binary is copied to the main tools/agbcc folder
+          cp gcc/agbcc .
+          cd ../..
       - name: Prepare Toolchain
         run: |
           # Create the bin folder the Makefile expects
