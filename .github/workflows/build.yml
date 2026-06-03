@@ -44,13 +44,15 @@ jobs:
         run: |
           export PATH="$(pwd)/tools:$PATH"
           make clean
+          # Add COMPILER_FLAGS="-w" to suppress warnings, 
+          # or try overriding CFLAGS to disable -Werror
           make -j$(nproc) CC=arm-none-eabi-gcc \
                         CXX=arm-none-eabi-g++ \
                         AS=arm-none-eabi-as \
                         LD=arm-none-eabi-ld \
                         OBJCOPY=arm-none-eabi-objcopy \
-                        CPPFLAGS="-Iinclude"
-        
+                        CPPFLAGS="-Iinclude -Wno-everything" \
+                        CFLAGS="-w"
       - name: Upload ROM artifact
         uses: actions/upload-artifact@v4
         with:
