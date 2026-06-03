@@ -1,41 +1,52 @@
 name: Build ROM
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - progress
+      - main
+  pull_request:
+    branches:
+      - progress
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          # Required for tool compilation (gbagfx, etc.) and assembly
+          sudo apt-get install -y build-essential libpng-dev gcc-arm-none-eabi binutils-arm-none-eabi
+
+      - name: Build Tools
+        run: |
+          # Compiles the essential helper tools (scaninc, ramscrgen, gbagfx, etc.)
+          make -C tools
+
       - name: Build ROM
         run: |
-          # 1. Ensure tools are in the PATH
+          # Add the local tools directory to the PATH
           export PATH="$(pwd)/tools:$PATH"
           
-          # 2. Use the specific agbcc binary from your tools folder
-          # Replace 'tools/agbcc/agbcc' with the actual path to your agbcc binary
-          AGBCC_PATH="$(pwd)/tools/agbcc/agbcc"
-          
+          # Clean environment
           make clean
           
-          # 3. Invoke make using the local agbcc
-          # We pass -w to suppress warnings, as agbcc treats warnings as fatal errors
-          make -j$(nproc) CC="$AGBCC_PATH" \
-                        CXX=arm-none-eabi-g++ \
-                        AS=arm-none-eabi-as \
-                        LD=arm-none-eabi-ld \
-                        OBJCOPY=arm-none-eabi-objcopy \
-                        CPPFLAGS="-Iinclude" \
-                        CFLAGS="-w -ffreestanding"
+          # Build the ROM
+          # CFLAGS="-w" is crucial to bypass legacy compiler warning-errors
+          make -j$(nproc) CFLAGS="-w -ffreestanding"
           
-      - name: Upload Artifacts
+      - name: Upload ROM Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rom-files
+          name: rom-files-progress-branch
           path: |
             *.gba
             *.map
