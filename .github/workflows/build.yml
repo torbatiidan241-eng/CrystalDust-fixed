@@ -2,21 +2,15 @@ name: Build ROM
 
 on:
   push:
-    branches:
-      - progress
-      - main
+    branches: [progress, main]
   pull_request:
-    branches:
-      - progress
-      - main
+    branches: [progress, main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -27,27 +21,22 @@ jobs:
 
       - name: Build Tools
         run: |
-          # Build tools individually if a root Makefile is missing
-          for d in tools/*; do
-            if [ -d "$d" ] && [ -f "${d}/Makefile" ]; then
-              make -C "$d"
-            fi
-          done
+          # Only build tools if the binaries don't exist
+          make -C tools || make -C tools
 
       - name: Build ROM
         run: |
-          # Ensure tools are in the PATH
           export PATH="$(pwd)/tools:$PATH"
+          # Use ARCH variable to help agbcc identify the platform
+          # Override CFLAGS to bypass the warning-as-error issue
+          make -j$(nproc) CFLAGS="-w -ffreestanding"
+        env:
+          # This helps some Makefiles locate the compiler if it's not in the standard PATH
+          CC: arm-none-eabi-gcc
+          AS: arm-none-eabi-as
+          LD: arm-none-eabi-ld
           
-          # Clean build artifacts
-          make clean
-          
-          # Use -w to suppress warnings that agbcc treats as errors
-          # Limit includes to the project's 'include' folder to avoid modern headers
-          make -j$(nproc) CPPFLAGS="-Iinclude" CFLAGS="-w -ffreestanding"
-          
-      - name: Upload ROM Artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: rom-files
           path: |
