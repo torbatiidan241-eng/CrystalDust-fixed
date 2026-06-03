@@ -43,7 +43,8 @@ jobs:
       - name: Build ROM
         run: |
           export PATH="$(pwd)/tools:$PATH"
-          # Define the specific include path for agbcc
+          # Force the compiler to use ONLY the local agbcc includes
+          # and specifically ignore standard system directories
           AGBCC_INCLUDE="$(pwd)/tools/agbcc/include"
           
           make clean
@@ -52,7 +53,7 @@ jobs:
                         AS=arm-none-eabi-as \
                         LD=arm-none-eabi-ld \
                         OBJCOPY=arm-none-eabi-objcopy \
-                        CPPFLAGS="-Iinclude -I$AGBCC_INCLUDE" \
+                        CPPFLAGS="-Iinclude -I$AGBCC_INCLUDE -nostdinc -isystem $AGBCC_INCLUDE" \
                         CFLAGS="-w -ffreestanding"
       - name: Upload ROM artifact
         uses: actions/upload-artifact@v4
