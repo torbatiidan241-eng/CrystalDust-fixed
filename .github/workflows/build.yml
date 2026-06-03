@@ -28,9 +28,17 @@ jobs:
 
       - name: Build Tools
         run: |
-          # Compiles the essential helper tools (scaninc, ramscrgen, gbagfx, etc.)
-          make -C tools
-
+          # 1. Check if there is a Makefile in tools
+          if [ -f tools/Makefile ]; then
+            make -C tools
+          # 2. If no Makefile, check for common individual build files
+          else
+            echo "No Makefile found in tools/, attempting to build individual tools..."
+            # Compile standard decomp tools manually if necessary
+            cd tools/gbagfx && make && cd ../..
+            cd tools/scaninc && make && cd ../..
+            cd tools/ramscrgen && make && cd ../..
+          fi
       - name: Build ROM
         run: |
           # Add the local tools directory to the PATH
