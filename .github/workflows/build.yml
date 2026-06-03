@@ -1,63 +1,40 @@
-name: Build GBA ROM
+name: Build ROM
 
-on:
-  push:
-    branches:
-      - main
-      - progrees
-  workflow_dispatch:
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential gcc-arm-none-eabi binutils-arm-none-eabi libpng-dev pkg-config libz-dev
-
-      - name: Build agbcc
-        run: |
-          chmod -R +x tools/agbcc
-          cd tools/agbcc
-          # Manually invoke the make commands required to build the agbcc binary
-          make -C gcc
-          # After building, ensure the binary is copied to the main tools/agbcc folder
-          cp gcc/agbcc .
-          cd ../..
-      - name: Prepare Toolchain
-        run: |
-          # Create the bin folder the Makefile expects
-          mkdir -p tools/agbcc/bin
-          # Link the newly built agbcc to the location the Makefile expects
-          # We search for the executable anywhere in tools/agbcc
-          FILE=$(find tools/agbcc -name "agbcc" -type f -perm /111 | head -n 1)
-          ln -sf "$(pwd)/$FILE" "$(pwd)/tools/agbcc/bin/agbcc"
+        with:
+          submodules: recursive
 
       - name: Build ROM
         run: |
+          # Add the tools directory to the PATH
           export PATH="$(pwd)/tools:$PATH"
-          # We will prioritize the project's include directory
-          # and provide the GCC headers without blocking them entirely.
-          # We use -isystem to lower the priority of system headers 
-          # so your project's local 'include' takes precedence.
           
+          # Clean previous build artifacts
           make clean
+          
+          # The key here is passing -w (suppress all warnings) and 
+          # restricting header searches to project-local paths
           make -j$(nproc) CC=arm-none-eabi-gcc \
                         CXX=arm-none-eabi-g++ \
                         AS=arm-none-eabi-as \
                         LD=arm-none-eabi-ld \
                         OBJCOPY=arm-none-eabi-objcopy \
-                        CPPFLAGS="-Iinclude -isystem $(arm-none-eabi-gcc -print-file-name=include)" \
+                        CPPFLAGS="-Iinclude" \
                         CFLAGS="-w -ffreestanding"
-      - name: Upload ROM artifact
+          
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: rom-artifact
-          path: "*.gba"
+          name: rom-files
+          path: |
+            *.gba
+            *.map
+            *.elf
