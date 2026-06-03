@@ -5,6 +5,10 @@ on:
     branches:
       - progress
       - main
+  pull_request:
+    branches:
+      - progress
+      - main
 
 jobs:
   build:
@@ -23,22 +27,30 @@ jobs:
 
       - name: Build Tools
         run: |
-          # The tools directory needs to be compiled into executables
-          # We use a loop to ensure each tool's Makefile is processed
-          for tool in $(ls -d tools/*/); do
-            if [ -f "${tool}Makefile" ]; then
-              make -C "$tool"
+          # Build tools individually if a root Makefile is missing
+          for d in tools/*; do
+            if [ -d "$d" ] && [ -f "${d}/Makefile" ]; then
+              make -C "$d"
             fi
           done
 
       - name: Build ROM
         run: |
-          # Ensure local tools are in PATH
+          # Ensure tools are in the PATH
           export PATH="$(pwd)/tools:$PATH"
           
           # Clean build artifacts
           make clean
           
-          # Build, ignoring warnings which agbcc incorrectly treats as errors
-          # Also, ensure we don't use system headers by focusing on local include
-          make -j$(nproc) CFLAGS="-w -ffreestanding"
+          # Use -w to suppress warnings that agbcc treats as errors
+          # Limit includes to the project's 'include' folder to avoid modern headers
+          make -j$(nproc) CPPFLAGS="-Iinclude" CFLAGS="-w -ffreestanding"
+          
+      - name: Upload ROM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rom-files
+          path: |
+            *.gba
+            *.map
+            *.elf
