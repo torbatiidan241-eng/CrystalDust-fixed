@@ -20,41 +20,40 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install System Dependencies
+      - name: Install Dependencies
         run: |
           sudo apt-get update
-          # Required for tool compilation (gbagfx, etc.) and assembly
+          # Install core tools required for building the ROM and internal helper tools
           sudo apt-get install -y build-essential libpng-dev gcc-arm-none-eabi binutils-arm-none-eabi
 
       - name: Build Tools
         run: |
-          # 1. Check if there is a Makefile in tools
-          if [ -f tools/Makefile ]; then
-            make -C tools
-          # 2. If no Makefile, check for common individual build files
-          else
-            echo "No Makefile found in tools/, attempting to build individual tools..."
-            # Compile standard decomp tools manually if necessary
-            cd tools/gbagfx && make && cd ../..
-            cd tools/scaninc && make && cd ../..
-            cd tools/ramscrgen && make && cd ../..
-          fi
+          # Compile the project's helper tools (scaninc, gbagfx, etc.)
+          # Some projects require building tools individually if a root Makefile fails
+          make -C tools || (for d in tools/*; do [ -d "$d" ] && make -C "$d"; done)
+
       - name: Build ROM
         run: |
           # Add the local tools directory to the PATH
           export PATH="$(pwd)/tools:$PATH"
           
-          # Clean environment
+          # Define the path to the legacy agbcc include headers
+          # Adjust if your structure differs
+          AGBCC_INCLUDE="$(pwd)/tools/agbcc/include"
+          
+          # Clean the build environment
           make clean
           
-          # Build the ROM
-          # CFLAGS="-w" is crucial to bypass legacy compiler warning-errors
-          make -j$(nproc) CFLAGS="-w -ffreestanding"
+          # Build using the project's preferred compiler paths.
+          # -w: Suppresses legacy compiler warnings (prevents #line errors)
+          # CPPFLAGS: Points to your local headers, bypassing system headers
+          make -j$(nproc) CPPFLAGS="-Iinclude -I$AGBCC_INCLUDE" \
+                        CFLAGS="-w -ffreestanding"
           
       - name: Upload ROM Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rom-files-progress-branch
+          name: rom-files
           path: |
             *.gba
             *.map
