@@ -24,12 +24,21 @@ jobs:
 
       - name: Prepare Toolchain
         run: |
-          # Ensure agbcc is executable
-          chmod +x tools/agbcc/agbcc
+          # Search for the agbcc binary anywhere in the tools directory
+          AGBCC_PATH=$(find tools -name "agbcc" -type f | head -n 1)
+          
+          if [ -z "$AGBCC_PATH" ]; then
+            echo "ERROR: Could not find 'agbcc' binary in the tools/ directory!"
+            echo "Please check that the file is actually uploaded and not ignored by .gitignore"
+            exit 1
+          fi
+
+          echo "Found agbcc at: $AGBCC_PATH"
+          chmod +x "$AGBCC_PATH"
+          
           # Setup directory structure the Makefile expects
           mkdir -p tools/agbcc/bin
-          ln -sf "$(pwd)/tools/agbcc/agbcc" "$(pwd)/tools/agbcc/bin/agbcc"
-
+          ln -sf "$(pwd)/$AGBCC_PATH" "$(pwd)/tools/agbcc/bin/agbcc"
       - name: Build ROM
         run: |
           # Add tools directory to PATH
