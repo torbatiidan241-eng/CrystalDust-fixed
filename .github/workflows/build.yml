@@ -43,8 +43,8 @@ jobs:
       - name: Build ROM
         run: |
           export PATH="$(pwd)/tools:$PATH"
-          # Get the path to the compiler's own headers
-          GCC_INCLUDE_DIR=$(arm-none-eabi-gcc -print-file-name=include)
+          # Define the specific include path for agbcc
+          AGBCC_INCLUDE="$(pwd)/tools/agbcc/include"
           
           make clean
           make -j$(nproc) CC=arm-none-eabi-gcc \
@@ -52,7 +52,7 @@ jobs:
                         AS=arm-none-eabi-as \
                         LD=arm-none-eabi-ld \
                         OBJCOPY=arm-none-eabi-objcopy \
-                        CPPFLAGS="-Iinclude -I$GCC_INCLUDE_DIR" \
+                        CPPFLAGS="-Iinclude -I$AGBCC_INCLUDE" \
                         CFLAGS="-w -ffreestanding"
       - name: Upload ROM artifact
         uses: actions/upload-artifact@v4
