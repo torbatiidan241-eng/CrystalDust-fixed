@@ -21,17 +21,33 @@ jobs:
 
       - name: Build Tools
         run: |
-          # Only build tools if the binaries don't exist
-          make -C tools || make -C tools
+          # Iterate through each directory in tools/
+          for tool_dir in tools/*/; do
+            if [ -d "$tool_dir" ]; then
+              echo "Checking $tool_dir for Makefile..."
+              # If a Makefile exists, build it
+              if [ -f "${tool_dir}Makefile" ]; then
+                make -C "$tool_dir"
+              fi
+            fi
+          done
 
       - name: Build ROM
         run: |
-          export PATH="$(pwd)/tools:$PATH"
-          # Use ARCH variable to help agbcc identify the platform
-          # Override CFLAGS to bypass the warning-as-error issue
+          # Add all tool subdirectories to PATH
+          # We use a loop to add every binary folder to ensure the main Makefile finds them
+          for tool_dir in tools/*/; do
+            if [ -d "$tool_dir" ]; then
+              export PATH="$(pwd)/$tool_dir:$PATH"
+            fi
+          done
+          
+          # Clean environment
+          make clean
+          
+          # Build ROM with flags to handle legacy compiler issues
           make -j$(nproc) CFLAGS="-w -ffreestanding"
         env:
-          # This helps some Makefiles locate the compiler if it's not in the standard PATH
           CC: arm-none-eabi-gcc
           AS: arm-none-eabi-as
           LD: arm-none-eabi-ld
