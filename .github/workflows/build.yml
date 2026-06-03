@@ -22,29 +22,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential gcc-arm-none-eabi binutils-arm-none-eabi libpng-dev pkg-config libz-dev
 
-      - name: Prepare Toolchain
+      - name: Build agbcc
         run: |
-          # Search for the agbcc binary anywhere in the tools directory
-          AGBCC_PATH=$(find tools -name "agbcc" -type f | head -n 1)
-          
-          if [ -z "$AGBCC_PATH" ]; then
-            echo "ERROR: Could not find 'agbcc' binary in the tools/ directory!"
-            echo "Please check that the file is actually uploaded and not ignored by .gitignore"
-            exit 1
+          # Check for build script or Makefile in agbcc folder
+          if [ -f "tools/agbcc/build.sh" ]; then
+            chmod +x tools/agbcc/build.sh
+            cd tools/agbcc && ./build.sh && cd ../..
+          elif [ -f "tools/agbcc/Makefile" ]; then
+            make -C tools/agbcc
           fi
 
-          echo "Found agbcc at: $AGBCC_PATH"
-          chmod +x "$AGBCC_PATH"
-          
-          # Setup directory structure the Makefile expects
+      - name: Prepare Toolchain
+        run: |
+          # Create the bin folder the Makefile expects
           mkdir -p tools/agbcc/bin
-          ln -sf "$(pwd)/$AGBCC_PATH" "$(pwd)/tools/agbcc/bin/agbcc"
+          # Link the newly built agbcc to the location the Makefile expects
+          # We search for the executable anywhere in tools/agbcc
+          FILE=$(find tools/agbcc -name "agbcc" -type f -perm /111 | head -n 1)
+          ln -sf "$(pwd)/$FILE" "$(pwd)/tools/agbcc/bin/agbcc"
+
       - name: Build ROM
         run: |
-          # Add tools directory to PATH
           export PATH="$(pwd)/tools:$PATH"
-          
-          # Clean and Build
           make clean
           make -j$(nproc) CC=arm-none-eabi-gcc \
                         CXX=arm-none-eabi-g++ \
